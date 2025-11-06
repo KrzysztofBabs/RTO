@@ -1,0 +1,52 @@
+#include <Arduino.h>
+
+volatile int counter=0;
+SemaphoreHandle_t mutex; // wspolny mutex dla obu taskow
+
+
+void TaskA(void *a){
+  for(;;){
+    if(xSemaphoreTake(mutex, 0)){
+        Serial.println("dostalem mutex A");
+        xSemaphoreGive(mutex);
+    }
+    else{
+        Serial.println("nie dostalem, wiec se ideA");
+    }
+    vTaskDelay(5000);
+  }
+}
+
+void TaskB(void *a){
+    for(;;){
+        if(xSemaphoreTake(mutex,2000)){
+            Serial.println("dostalem mutex B");
+            vTaskDelay(2000);
+            xSemaphoreGive(mutex);
+        }
+        else{
+            Serial.println("nie dostalem, wiec se ideB");
+        }
+        
+    }
+    vTaskDelay(3000);
+   
+
+}
+
+
+void setup() {
+  Serial.begin(9600);
+  vTaskDelay(3000);
+
+
+  mutex = xSemaphoreCreateMutex();
+  xTaskCreate(TaskB, "TaskB", 2048, NULL, 2, NULL);
+  xTaskCreate(TaskA, "TaskA", 2048, NULL, 1, NULL);
+
+}
+
+void loop() {
+  
+}
+

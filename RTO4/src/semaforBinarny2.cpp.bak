@@ -1,0 +1,38 @@
+#include <Arduino.h>
+
+
+SemaphoreHandle_t buttonSem;
+const int buttonPin=23;
+
+
+void IRAM_ATTR handleButtonISR(){
+  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+  xSemaphoreGiveFromISR(buttonSem, &xHigherPriorityTaskWoken);
+  portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}
+
+
+
+
+
+void TaskLedConsumer(void *pv){
+  pinMode(21, OUTPUT);
+  for(;;){
+    if(xSemaphoreTake(buttonSem, portMAX_DELAY)==pdTRUE){
+      digitalWrite(21, HIGH);
+      vTaskDelay(200);
+      digitalWrite(21, LOW);
+    }
+  }
+}
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(buttonPin, INPUT_PULLUP);
+
+  buttonSem = xSemaphoreCreateBinary();
+  xTaskCreate(TaskLedConsumer, "TLC", 2048, NULL, 1, NULL);
+  attachInterrupt(digitalPinToInterrupt(buttonPin), handleButtonISR, FALLING);
+}
+
+void loop() {}

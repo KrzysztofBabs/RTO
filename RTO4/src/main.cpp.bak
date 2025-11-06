@@ -1,0 +1,40 @@
+#include <Arduino.h>
+
+void TaskA(void *pv){
+  for(;;){
+    digitalWrite(22,HIGH); // digital zapala/gasi lampke
+    vTaskDelay(200);
+    digitalWrite(22,LOW); // digital zapala/gasi lampke
+    vTaskDelay(200);
+  }
+}
+
+void TaskB(void *pv){
+  for(;;){
+    digitalWrite(22,HIGH);
+    vTaskDelay(50);
+    digitalWrite(22,LOW);
+    vTaskDelay(50);
+
+    
+  }
+}
+
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(22,OUTPUT);
+  xTaskCreate(TaskA, "TaskA", 2048, NULL, 1, NULL);
+  xTaskCreate(TaskB, "TaskB", 2048, NULL, 1, NULL);
+
+ 
+
+  
+
+
+}
+
+void loop() {
+  
+}
+

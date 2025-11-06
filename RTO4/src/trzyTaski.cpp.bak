@@ -1,0 +1,59 @@
+
+#include <Arduino.h>
+SemaphoreHandle_t mutex;
+
+void TaskSensor(void *a){
+    for(;;){
+        if(xSemaphoreTake(mutex,portMAX_DELAY)){
+            int temperatura=15;
+            Serial.print("TS");
+            Serial.println(temperatura);
+            xSemaphoreGive(mutex);
+
+        }
+        vTaskDelay(3000);
+        // vTaskDelay(1000);
+    }
+
+}
+
+void TaskNetwork(void *a){
+    for(;;){
+        if(xSemaphoreTake(mutex,portMAX_DELAY)){
+            Serial.println("TN");
+            xSemaphoreGive(mutex);
+        }
+        vTaskDelay(6000);
+        // vTaskDelay(1000);
+    }
+    
+}
+
+void TaskMonitor(void *a){
+    for(;;){
+        if(xSemaphoreTake(mutex,portMAX_DELAY)){
+            Serial.println("TM");
+            xSemaphoreGive(mutex);
+        }
+        vTaskDelay(1000); //musi byc w petli for
+        // vTaskDelay(1000);
+    }
+}
+
+
+
+
+
+void setup(){
+
+    Serial.begin(9600);
+    mutex=xSemaphoreCreateMutex();
+    xTaskCreate(TaskSensor,"TS",2048,NULL,1,NULL);
+    xTaskCreate(TaskNetwork,"TN",2048,NULL,1,NULL);
+    xTaskCreate(TaskMonitor,"TM",2048,NULL,2,NULL);
+
+}
+
+
+
+void loop(){}
