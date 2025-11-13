@@ -1,0 +1,63 @@
+#include <Arduino.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/queue.h"
+
+QueueHandle_t kolejka;
+
+
+
+void TaskProducer(void *a){
+  int wartoscDostarczana=0;
+  for(;;){
+    if(xQueueSend(kolejka,&wartoscDostarczana,portMAX_DELAY)==pdPASS){
+      
+      Serial.print("wyslano ");
+      Serial.println(wartoscDostarczana);
+      wartoscDostarczana++;
+      vTaskDelay(2000);
+      
+      
+
+
+    }
+  }
+}
+
+
+void TaskConsumer(void *a){
+  for(;;){
+    int wartoscOdbierana;
+    if(xQueueReceive(kolejka,&wartoscOdbierana,1000)==pdPASS){
+      Serial.print("odebrano ");
+      Serial.println(wartoscOdbierana);
+
+    }
+    else{
+      Serial.print("brak danych w kolejce\n");
+    }
+  }
+}
+
+
+
+
+
+void setup() {
+  Serial.begin(9600);
+  kolejka=xQueueCreate(5,sizeof(int));
+  if(kolejka!=NULL){
+    xTaskCreate(TaskProducer, "TP", 2048, NULL,1,NULL);
+    xTaskCreate(TaskConsumer, "TC", 2048, NULL,1,NULL);
+  }
+  else{
+    Serial.println("kolejka nie zostala utworzona\n");
+  }
+
+  
+}
+
+void loop() {
+  
+}
+
