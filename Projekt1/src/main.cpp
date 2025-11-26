@@ -4,16 +4,16 @@
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 
-const int pinFotoR = 34;
-const int pinLampka1 = 15;
-const int pinLampka2 = 5;
-const int pinCzujnikTemp = 26;
+const int pinFotoR=34;
+const int pinLampka1=15;
+const int pinLampka2=5;
+const int pinCzujnikTemp=26;
 
 TaskHandle_t myTaskHandle = NULL;
 SemaphoreHandle_t signalSem;
 QueueHandle_t kolejka1;
 
-typedef struct {
+typedef struct{
   uint32_t timestamp;
   int wartosc;
   int id;
@@ -26,7 +26,8 @@ void TaskLampka1(void *a){
 
         if(value<2){
             digitalWrite(pinLampka1, value);       
-        }else{
+        }
+        else{
             digitalWrite(pinLampka2, value-2); 
         }
 
@@ -34,7 +35,7 @@ void TaskLampka1(void *a){
     }
 }
 
-void TaskFotoRezystor(void *a) {
+void TaskFotoRezystor(void *a){
   for(;;){
     Pomiary pomiar;
     pomiar.wartosc = analogRead(pinFotoR);
@@ -87,18 +88,20 @@ void TaskLogic(void *a){
 
       if(xQueueReceive(kolejka1, &pomiar, pdMS_TO_TICKS(portMAX_DELAY)) == pdPASS){
         if(pomiar.id == 1){
-          Serial.println("zapalam lampke zielona");
-          if(pomiar.wartosc < 1000){
+          Serial.println("zapalam lampke czerwona");
+          if(pomiar.wartosc<1000){
             xTaskNotify(myTaskHandle, 0, eSetValueWithoutOverwrite);
-          } else {
+          }
+          else{
             xTaskNotify(myTaskHandle, 1, eSetValueWithoutOverwrite);
           }
         }
         if(pomiar.id == 2){
-          Serial.println("zapalam lampke czerwona");
-          if(pomiar.wartosc < 16){
+          Serial.println("zapalam lampke zielona");
+          if(pomiar.wartosc<14){
             xTaskNotify(myTaskHandle, 2, eSetValueWithoutOverwrite);
-          } else {
+          } 
+          else{
             xTaskNotify(myTaskHandle, 3, eSetValueWithoutOverwrite);
           }
         }
@@ -123,4 +126,6 @@ void setup(){
   xTaskCreate(TaskLogic, "TL", 2048, NULL, 1, NULL);
 }
 
-void loop(){}
+void loop(){
+  
+}
