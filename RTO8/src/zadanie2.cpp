@@ -1,0 +1,60 @@
+#include <Arduino.h>
+
+TaskHandle_t taskHandle;
+
+
+
+void TaskGeneratorLiczb(void *a){
+  uint32_t licznik=0;
+  uint32_t value;
+
+  for(;;){
+
+    value=random(0,3);
+    
+   
+   xTaskNotify(taskHandle,value,eSetValueWithOverwrite);
+   vTaskDelay(200);
+    
+    
+  }
+  
+}
+
+
+void TaskConsumer(void *a){
+  uint32_t valueOdebrane;
+
+ 
+  for(;;){
+
+    
+    xTaskNotifyWait(0,0,&valueOdebrane,portMAX_DELAY);
+    
+
+   
+
+    Serial.println(valueOdebrane);
+    vTaskDelay(400);
+
+    
+  }
+  
+
+
+}
+
+
+
+void setup(){
+  Serial.begin(9600);
+  xTaskCreate(TaskConsumer,"TC",2048,NULL,1,&taskHandle);
+  xTaskCreate(TaskGeneratorLiczb,"TGL",2048,NULL,1,NULL);
+  
+  
+}
+
+void loop(){
+  
+}
+
