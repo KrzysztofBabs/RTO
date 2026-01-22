@@ -1,0 +1,192 @@
+#include <Arduino.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include<freertos/queue.h>
+#include "freertos/task.h"
+
+
+int pinCzerwona1=4;
+int pinCzerwona2=16;
+int pinZolta=23;
+int pinZielona=18;
+int pinCzujnik=14;
+int pinBrzeczyk=13;
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+QueueHandle_t kolejka;
+SemaphoreHandle_t sygnal;
+TaskHandle_t taskhandle;
+TaskHandle_t taskhandle2;
+
+
+int trigPin=26;
+int echoPin=27;
+
+typedef struct{
+  int odleglosc;
+  bool czyRuch;
+} Dane; 
+
+// void TaskDzwiek(void *a){
+//   uint32_t value;
+//   for(;;){
+//     xTaskNotifyWait(0, 0, &value, portMAX_DELAY);
+//     if(value==1){
+//       digitalWrite(pinBrzeczyk,value);
+//     }
+//   }
+
+// }
+
+void TaskCzujnik(void *a){
+  for(;;){
+    int stanCzujnik=digitalRead(pinCzujnik);
+    if(stanCzujnik==HIGH){
+    Serial.println("wykryto ruch");
+    xTaskNotifyGive(taskhandle);
+    vTaskDelay(200);
+    }
+
+    vTaskDelay(100);
+
+  }
+  
+  }
+
+
+void TaskLiczenieOdleglosci(void *a){
+
+  Dane dane;
+  long czasTrwania;
+  int dystansCm;
+  String komunikat;
+  int ostatniDystans=15;
+  for(;;){
+    
+    ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(100));
+    
+    
+    digitalWrite(trigPin, LOW);
+    delayMicroseconds(2);
+
+    digitalWrite(trigPin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigPin, LOW);
+
+        // Odczyt ECHO (z timeoutem 30ms, żeby nie wieszać systemu)
+        czasTrwania = pulseIn(echoPin, HIGH, 30000);
+        if (czasTrwania == 0 ) {
+         dystansCm=-1;
+    } else {
+        dystansCm = (int)(czasTrwania / 58); // TO JEST KLUCZOWA LINIJKA
+    }
+        dane.odleglosc = dystansCm; 
+        xQueueSend(kolejka, &dane, portMAX_DELAY);
+        vTaskDelay(pdMS_TO_TICKS(60));
+    
+  }
+}
+
+
+void TaskWyswietlanie(void *a){
+  Dane daneOtrzymane;
+  for(;;){
+    if(xQueueReceive(kolejka,&daneOtrzymane,1000)==pdPASS){
+      lcd.clear();
+    if(daneOtrzymane.odleglosc==-1){
+      lcd.setCursor(0, 0);
+      lcd.print("brak ruchu");
+      
+      digitalWrite(pinZielona, LOW);
+      digitalWrite(pinZolta, LOW);
+      digitalWrite(pinCzerwona1, LOW);
+      digitalWrite(pinCzerwona2, LOW);
+
+      
+      
+    }
+    
+
+    else{
+    lcd.setCursor(0,0);
+    lcd.print("odleglosc: ");
+    // lcd.setCursor(0, 1);
+    lcd.print(daneOtrzymane.odleglosc);
+    lcd.print(" cm");
+
+    digitalWrite(pinZielona, LOW);
+    digitalWrite(pinZolta, LOW);
+    digitalWrite(pinCzerwona1, LOW);
+    digitalWrite(pinCzerwona2, LOW);
+    digitalWrite(pinBrzeczyk, LOW);
+
+         
+         
+         if(daneOtrzymane.odleglosc >13){
+             digitalWrite(pinZielona, HIGH);
+         }
+         else if(daneOtrzymane.odleglosc >8){
+             digitalWrite(pinZielona, LOW);
+             digitalWrite(pinZolta, HIGH);
+             
+         }
+         else{
+             digitalWrite(pinZielona, LOW);
+             digitalWrite(pinZolta, LOW);
+             digitalWrite(pinCzerwona1, HIGH);
+             digitalWrite(pinCzerwona2, HIGH);
+             digitalWrite(pinBrzeczyk,HIGH);
+            //  xTaskNotify(taskhandle2, 1, eSetValueWithoutOverwrite);
+
+    }
+
+    
+    
+    
+  }
+    
+  }
+}
+  
+}
+
+
+void setup(){
+
+  Serial.begin(9600);
+  
+  pinMode(pinCzujnik,INPUT_PULLDOWN);
+  pinMode(pinCzerwona1,OUTPUT);
+  pinMode(pinCzerwona2,OUTPUT);
+  pinMode(pinZolta,OUTPUT);
+  pinMode(pinZielona,OUTPUT);
+
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  pinMode(pinBrzeczyk, OUTPUT);
+  digitalWrite(pinBrzeczyk, LOW);
+    
+  
+  digitalWrite(trigPin, LOW);
+
+  lcd.init();       
+  lcd.backlight();  
+
+  sygnal = xSemaphoreCreateBinary();
+  kolejka = xQueueCreate(5, sizeof(Dane));
+
+  xTaskCreate(TaskCzujnik,"TC",4096,NULL,1,NULL);
+  xTaskCreate(TaskLiczenieOdleglosci,"TL",4096,NULL,1,&taskhandle);
+  xTaskCreate(TaskWyswietlanie,"TW",4096,NULL,1,NULL);
+  // xTaskCreate(TaskDzwiek,"TD",4096,NULL,1,&taskhandle2);
+
+
+  
+}
+
+void loop(){
+
+  
+}
+
